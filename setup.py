@@ -18,13 +18,12 @@ def read_text(filename, dir=None):
 setup(
     url='https://github.com/nandoflorestan/python-dropbox-backup',
     name="poorbox",
-    version='0.1dev',
+    version='0.1',
     author='Nando Florestan',
     author_email="nandoflorestan@gmail.com",
     license='BSD',
     description="Downloads a dropbox directory via the dropbox REST API. "
-        "Downloads only the changed files. Useful for environments without "
-        "an X server.",
+        "Downloads only the changed files. Useful for limited environments.",
     long_description=read_text('README.rst'),
     packages=find_packages(),
     include_package_data=True,

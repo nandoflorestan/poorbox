@@ -222,7 +222,7 @@ def main():
     # args = vars(parser.parse_args())
     args = parser.parse_args()
     if args.log_dir or args.verbose:
-        from log import setup_log
+        from .log import setup_log
         setup_log(directory=args.log_dir, level='debug',
             screen_level=logging.DEBUG if args.verbose else logging.WARNING)
     try:
