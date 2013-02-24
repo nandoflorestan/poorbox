@@ -54,34 +54,7 @@ class AuthenticationFailure(Exception):
 
 
 class PoorBox(object):
-    '''
-        PoorBox
-        =======
-
-        Poor man's dropbox -- Recursively downloads a dropbox directory
-        using the REST API.
-
-        This software is intended for platforms on which Dropbox does not run,
-        such as ARM, Raspberry Pi etc.
-
-        Good news: this downloads only the files that have been modified.
-
-        Bad news: this is considerably slower than the "real" Dropbox software,
-        due to 2 reasons:
-
-        1. No optimization has been done: files are downloaded sequentially.
-
-        2. The Dropbox REST API only deals with entire files, not file-deltas.
-
-        We don't upload changes yet, so sync is one-way only.
-        Maybe in the future!
-
-        When you run the app for the first time and authorize in your browser,
-        Dropbox will create an "Apps/poorbox" directory which poorbox can see.
-        You can put files and folders there and poorbox will be able to
-        download them. This is because this app currently has
-        "app_folder" access, not entire dropbox access.
-        '''
+    '''This class can be reused in other programs!'''
     def load_cache(self):
         if os.path.exists(self.cache_path):
             with open(self.cache_path, 'r') as f:
@@ -94,7 +67,7 @@ class PoorBox(object):
             json.dump(self.cache, f)
 
     def __init__(self, token_key=None, token_secret=None, cursor=None,
-        cache_path='poorbox.cache', output_dir=None,
+        cache_path='poorbox.cache', output_dir='POORBOX',
         request_user_authentication=request_user_authentication,
         app_key=APP_KEY, app_secret=APP_SECRET, access_type=ACCESS_TYPE):
         '''``access_type`` can be "app_folder" or "dropbox". The latter gives
@@ -160,12 +133,12 @@ class PoorBox(object):
             else:
                 return local_path
 
-    def update(self, output_dir=None):
+    def update(self):
         '''https://www.dropbox.com/static/developers/\
         dropbox-python-sdk-1.5.1-docs/#dropbox.client.DropboxClient.delta
         '''
         cursor = self.cache.get('cursor', None)
-        output_dir = os.path.expanduser(output_dir or self.output_dir)
+        output_dir = os.path.expanduser(self.output_dir)
         mkdir(output_dir)
         while True:
             resp = self.client.delta(cursor)
@@ -212,8 +185,6 @@ class PoorBox(object):
             if not resp['has_more']:
                 break
 
-__doc__ = PoorBox.__doc__
-
 
 def poorbox_from_config_file(path):  # TODO Implement
     raise NotImplementedError()
@@ -234,7 +205,7 @@ def main():
         description="Downloads a directory from your dropbox. "
         "Warning: this command deletes entire directories, so be careful!")
     parser.add_argument('-o', '--output-dir', metavar='DIRECTORY',
-        help="folder to download the files into")
+        help="folder to download the files into", default='POORBOX')
     parser.add_argument('-c', '--cache-file', metavar='FILE',
         help="file for poorbox to keep the cache in", default='poorbox.cache')
     parser.add_argument('-k', '--app-key', metavar='KEY',
@@ -254,9 +225,6 @@ def main():
         from log import setup_log
         setup_log(directory=args.log_dir, level='debug',
             screen_level=logging.DEBUG if args.verbose else logging.WARNING)
-    # log_to_screen(level=logging.DEBUG if args.verbose else logging.WARNING)
-    # if args.log_dir:
-    #     log_to_file(args.log_dir)
     try:
         poorbox = PoorBox(cache_path=args.cache_file, app_key=args.app_key,
             app_secret=args.app_secret, access_type=args.access_type,
