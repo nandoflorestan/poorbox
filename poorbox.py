@@ -7,11 +7,8 @@ import json
 import logging
 import os
 import stat
-import sys
 from shutil import rmtree
-from sys import exit
 from time import sleep
-from datetime import datetime
 from dropbox import client, rest, session
 # https://www.dropbox.com/static/developers/dropbox-python-sdk-1.5.1-docs/
 
@@ -64,17 +61,20 @@ class PoorBox(object):
         Poor man's dropbox -- Recursively downloads a dropbox directory
         using the REST API.
 
-        It downloads only the files that have been modified.
+        This software is intended for platforms on which Dropbox does not run,
+        such as ARM, Raspberry Pi etc.
 
-        Because the Dropbox REST API can only download/upload entire files,
-        not file-deltas, synchronization can be slower than the real Dropbox
-        software, especially for large files.
+        Good news: this downloads only the files that have been modified.
+
+        Bad news: this is considerably slower than the "real" Dropbox software,
+        due to 2 reasons:
+
+        1. No optimization has been done: files are downloaded sequentially.
+
+        2. The Dropbox REST API only deals with entire files, not file-deltas.
 
         We don't upload changes yet, so sync is one-way only.
         Maybe in the future!
-
-        This software is intended for platforms on which Dropbox does not run,
-        such as ARM, Raspberry Pi etc.
 
         When you run the app for the first time and authorize in your browser,
         Dropbox will create an "Apps/poorbox" directory which poorbox can see.
@@ -215,44 +215,56 @@ class PoorBox(object):
 __doc__ = PoorBox.__doc__
 
 
-def poorbox_from_dict(adict):  # TODO Implement
-    raise NotImplementedError()
-    # TODO Read cache into adict
-    return PoorBox(**adict)
-
-
 def poorbox_from_config_file(path):  # TODO Implement
     raise NotImplementedError()
     # TODO Read config file into adict
-    return poorbox_from_dict(adict)
+    return PoorBox(**adict)
 
 
-def create_config_file(path):  # TODO FIX
+def create_config_file(path):  # TODO Implement
     '''Config: app_key, app_secret, access_type, output_dir, cache_file
-        OMIT app_key if it is ours
+    OMIT app_key if it is ours!
     '''
     raise NotImplementedError()
 
 
 def main():
-    init_logging()
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Downloads a directory from your dropbox. "
+        "Warning: this command deletes entire directories, so be careful!")
+    parser.add_argument('-o', '--output-dir', metavar='DIRECTORY',
+        help="folder to download the files into")
+    parser.add_argument('-c', '--cache-file', metavar='FILE',
+        help="file for poorbox to keep the cache in", default='poorbox.cache')
+    parser.add_argument('-k', '--app-key', metavar='KEY',
+        help="dropbox application key", default=APP_KEY)
+    parser.add_argument('-s', '--app-secret', metavar='SECRET',
+        help="dropbox application secret", default=APP_SECRET)
+    parser.add_argument('-a', '--access_type',
+        choices=('dropbox', 'app_folder'), default=ACCESS_TYPE,
+        help="access the whole dropbox or a directory in it")
+    parser.add_argument('-v', '--verbose', action='store_true',
+        help="show what dropbox tells poorbox to do")
+    parser.add_argument('-l', '--log-dir', metavar='DIRECTORY',
+        help='folder to store logs into', default='.')
+    # args = vars(parser.parse_args())
+    args = parser.parse_args()
+    if args.log_dir or args.verbose:
+        from log import setup_log
+        setup_log(directory=args.log_dir, level='debug',
+            screen_level=logging.DEBUG if args.verbose else logging.WARNING)
+    # log_to_screen(level=logging.DEBUG if args.verbose else logging.WARNING)
+    # if args.log_dir:
+    #     log_to_file(args.log_dir)
     try:
-        poorbox = PoorBox() # TODO argparse
+        poorbox = PoorBox(cache_path=args.cache_file, app_key=args.app_key,
+            app_secret=args.app_secret, access_type=args.access_type,
+            output_dir=args.output_dir)
+    except AuthenticationFailure as e:           # We are unauthorized, so
+        parser.exit(status=401, message=str(e))  # quit with an error code.
+    else:
         poorbox.update()
-    except AuthenticationFailure:  # We are unauthorized, so
-        exit(401)        # exit to system with an error code.
-
-
-def init_logging():
-    """Set up log file. TODO: Make configurable."""
-    now = datetime.now()
-    date_string = now.strftime('%Y-%m-%d_%H-%M')
-    logfile_name = 'poorbox-' + date_string + '.log'
-    logging.basicConfig(filename=logfile_name, level=logging.DEBUG)
-
-
-def log_to_screen_only(level=logging.DEBUG):
-    logging.basicConfig(level=level, stream=sys.stdout)
 
 
 if __name__ == '__main__':

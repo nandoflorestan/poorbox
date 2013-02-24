@@ -30,7 +30,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite='tests',
-    install_requires=['six', 'dropbox>=1.5.1'],  # argparse, 'bag>0.3'
+    install_requires=['six', 'dropbox>=1.5.1'],
     keywords=['dropbox', "python", 'REST', 'API', 'download', 'console'],
     classifiers=[  # http://pypi.python.org/pypi?:action=list_classifiers
         "Development Status :: 4 - Beta",
